@@ -1,6 +1,6 @@
 #include <Teensy-ICM-20948.h>
 #include "Quaternion.h"
-#include <filters.h> // GitHub Repo: https://github.com/MartinBloedorn/libFilter
+#include "filters.h" // GitHub Repo: https://github.com/MartinBloedorn/libFilter
 
 #define filterSamples   101 // filterSamples should  be an odd number, no smaller than 3
 
@@ -13,9 +13,10 @@ float zPosition;
 unsigned long currentTime;
 unsigned long lastTime;
 float dt = 1.0/255.0;
+float gravity = 9.81;
 
 // Set filter parameters
-const float cutoff_freq_lp   = 60.0;  //Cutoff frequency in Hz
+const float cutoff_freq_lp   = 30.0;  //Cutoff frequency in Hz
 const float sampling_time_lp = 0.005; //Sampling time in seconds.
 IIR::ORDER  order_lp  = IIR::ORDER::OD2; // Order (OD1 to OD4)
 
@@ -87,7 +88,7 @@ void loop()
     icm20948.readQuatData(&quat_w, &quat_x, &quat_y, &quat_z);
 
     // Setup accel vector and convert g's to m/s^2
-    double tempVec[3] = {accel_x * 9.81, accel_y * 9.81, accel_z * 9.81};
+    double tempVec[3] = {accel_x * gravity, accel_y * gravity, accel_z * gravity};
 
     // Setup quaternion
     Quaternion_set(quat_w, quat_x, quat_y, quat_z, &quat);
@@ -98,13 +99,13 @@ void loop()
     // Smooth accelerations with band filter in new vector
     double xAccelFiltered = bandPassFilter(newVec[0]);
     double yAccelFiltered = bandPassFilter(newVec[1]);
-    double zAccelFiltered = bandPassFilter(newVec[2] - 9.93);
+    double zAccelFiltered = bandPassFilter(newVec[2] - gravity);
 
     // Take magnitude of newVec
     double accelMag = sqrt(xAccelFiltered * xAccelFiltered + yAccelFiltered * yAccelFiltered + zAccelFiltered * zAccelFiltered);
 
     // Reset position if stationary
-    if (accelMag < 0.2)
+    if (accelMag < 0.15)
     {
       xPosition = 0.0;
       yPosition = 0.0;
