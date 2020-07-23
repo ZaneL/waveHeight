@@ -2,7 +2,7 @@
 #include "Quaternion.h"
 #include <filters.h> // GitHub Repo: https://github.com/MartinBloedorn/libFilter
 
-#define filterSamples   33 // filterSamples should  be an odd number, no smaller than 3
+#define filterSamples   101 // filterSamples should  be an odd number, no smaller than 3
 
 float xVelocity;
 float xPosition;
@@ -12,13 +12,16 @@ float zVelocity;
 float zPosition;
 unsigned long currentTime;
 unsigned long lastTime;
-float dt;
-const float cutoff_freq   = 20;  //Cutoff frequency in Hz
-const float sampling_time = 0.005; //Sampling time in seconds.
-IIR::ORDER  order  = IIR::ORDER::OD1; // Order (OD1 to OD4)
+float dt = 1.0/255.0;
 
-// Low-pass filter
-Filter f(cutoff_freq, sampling_time, order);
+// Set filter parameters
+const float cutoff_freq_lp   = 60.0;  //Cutoff frequency in Hz
+const float sampling_time_lp = 0.005; //Sampling time in seconds.
+IIR::ORDER  order_lp  = IIR::ORDER::OD2; // Order (OD1 to OD4)
+
+const float cutoff_freq_hp   = 0.02;   //Cutoff frequency in Hz
+const float sampling_time_hp = 0.005; //Sampling time in seconds.
+IIR::ORDER order_hp = IIR::ORDER::OD2; // Order
 
 // ICM Settings
 TeensyICM20948 icm20948;
@@ -37,25 +40,36 @@ TeensyICM20948Settings icmSettings =
   .quaternion_frequency = 225     // Max frequency = 225, min frequency = 50
 };
 
+// Create low-pass filter
+Filter f(cutoff_freq_lp, sampling_time_lp, order_lp);
+
+// Create high-pass filter
+Filter fhp(cutoff_freq_hp, sampling_time_hp, order_hp, IIR::TYPE::HIGHPASS);
+
+// Create function to combine filters
+double bandPassFilter (double rawData)
+{
+  double lowPassFiltered = f.filterIn(rawData);
+  double highPassFiltered = fhp.filterIn(lowPassFiltered);
+  return highPassFiltered;
+}
+
 /**************************
- * Setup
+   Setup
  *************************/
- 
+
 void setup()
 {
   Serial.begin(115200);
   delay(5000);
 
   icm20948.init(icmSettings);
-
-  currentTime = millis();
-  lastTime = millis();
 }
 
 /************************
- * Loop
+   Loop
  ***********************/
- 
+
 void loop()
 {
   float accel_x, accel_y, accel_z;
@@ -68,10 +82,6 @@ void loop()
 
   if (icm20948.accelDataIsReady() && icm20948.quatDataIsReady())
   {
-    currentTime = millis();
-    dt = (currentTime - lastTime) / 1000.0;
-    lastTime = currentTime;
-
     // Get most recent accel and quat values
     icm20948.readAccelData(&accel_x, &accel_y, &accel_z);
     icm20948.readQuatData(&quat_w, &quat_x, &quat_y, &quat_z);
@@ -82,27 +92,36 @@ void loop()
     // Setup quaternion
     Quaternion_set(quat_w, quat_x, quat_y, quat_z, &quat);
 
-    // Get new accel vector that is rotated to world frame
-    Quaternion_rotate (&quat, tempVec, newVec);
+    // Get new acceleration vector that is rotated to world frame
+    Quaternion_rotate(&quat, tempVec, newVec);
 
-    // Smooth z acclerations in new vector
-    float zAccelerationSmoothed = f.filterIn(newVec[2] - 9.93);
+    // Smooth accelerations with band filter in new vector
+    double xAccelFiltered = bandPassFilter(newVec[0]);
+    double yAccelFiltered = bandPassFilter(newVec[1]);
+    double zAccelFiltered = bandPassFilter(newVec[2] - 9.93);
+
+    // Take magnitude of newVec
+    double accelMag = sqrt(xAccelFiltered * xAccelFiltered + yAccelFiltered * yAccelFiltered + zAccelFiltered * zAccelFiltered);
+
+    // Reset position if stationary
+    if (accelMag < 0.2)
+    {
+      xPosition = 0.0;
+      yPosition = 0.0;
+      zPosition = 0.0;
+    }
 
     // Integral of acceleration on each axis
-    xVelocity += newVec[0] * dt;
-    yVelocity += newVec[1] * dt;
-    zVelocity += zAccelerationSmoothed * dt;
-
-    // Smooth z velocity
-    float zVelocitySmoothed = f.filterIn(zVelocity);
+    xVelocity += xAccelFiltered * dt;
+    yVelocity += yAccelFiltered * dt;
+    zVelocity += zAccelFiltered * dt;
 
     // Integral of velocity on each axis
     xPosition += xVelocity * dt;
     yPosition += yVelocity * dt;
-    zPosition += zVelocitySmoothed * dt;
+    zPosition += zVelocity * dt;
 
     // Print
-    Serial.println(zAccelerationSmoothed);
-
+    Serial.println(zPosition);
   }
 }
