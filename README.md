@@ -6,7 +6,10 @@ The orientation is measured with this library https://github.com/ZaneL/Teensy-IC
 
 The chip has it's own x, y and z axes that all motion is relative to and measuring wave height requires these axes to be corrected to a world frame so vertical acceleration will always be antiparallel to gravity. This correction is done with the help of a quaternion math library that converts the quaternion values to a rotation matrix. 
 
-A filtering library employs a band-pass filter to eliminate much of the drift and high frequency noise from the accelerometer. The band-pass filter was chosen over a Kalman fitler because it was a simpler technique that produced satisfactory values. However, a Kalman filter is being tested with the algorithm and will be implemented instead if it yields more accurate values. 
+A filtering library employs a band-pass filter to eliminate much of the drift and high frequency noise from the accelerometer. The band-pass filter was chosen over a Kalman fitler because it is more tuned to the high f noise characteristics of the accelerometer. 
+
+With any filtering mechanism, there must be a balance between signal stability and data loss. To limit integral drift, the high frequency accelerometer readings must be heavily filtered, resulting in significant data loss. 
+![alt text](https://i.ibb.co/34X9ZZd/z-Accel015.png)
 
 # Examples
 The first example prints the real time vertical position values of the board to the serial port.
@@ -37,7 +40,7 @@ double bandPassFilter (double rawData)
   return highPassFiltered;
 }
 ```
-Wave height measurement is possible because we can limit noise in the data by reseting the position at the trough of each wave. Experimentally, we decided this could be approximated by the point in time at which the magnitude of the acceleration vector is less than 0.15.
+Wave height measurement is possible because we can limit noise accumulation by reseting the position at the trough of each wave. Experimentally, we decided this could be approximated by the point in time at which the magnitude of the acceleration vector is less than 0.15.
 
 ```
 // Take magnitude of newVec
