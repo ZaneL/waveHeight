@@ -5,6 +5,7 @@ This algorithm measures the displacement of a ICM-20948 by constantly correcting
 The orientation is measured with this library https://github.com/ZaneL/Teensy-ICM-20948 which employs a Madgwick filter to acurrately express orientation with quaternion values.
 
 The chip has it's own x, y and z axes that all motion is relative to and measuring wave height requires these axes to be corrected to a world frame so vertical acceleration will always be antiparallel to gravity. This correction is done with the help of a quaternion math library that converts the quaternion values to a rotation matrix. 
+![alt text](https://i.ibb.co/3kQRM8P/rotated-3-D-vector.png)
 
 A filtering library employs a band-pass filter to eliminate much of the drift and high frequency noise from the accelerometer. The band-pass filter was chosen over a Kalman fitler because it is more tuned to the high f noise characteristics of the accelerometer. 
 
