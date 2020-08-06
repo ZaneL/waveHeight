@@ -7,7 +7,7 @@ The orientation is measured with this library https://github.com/ZaneL/Teensy-IC
 The chip has it's own x, y and z axes that all motion is relative to and measuring wave height requires these axes to be corrected to a world frame so vertical acceleration will always be antiparallel to gravity. This correction is done with the help of a quaternion math library that converts the quaternion values to a rotation matrix. 
 ![alt text](https://i.ibb.co/3kQRM8P/rotated-3-D-vector.png)
 
-A filtering library employs a band-pass filter to eliminate much of the drift and high frequency noise from the accelerometer. The band-pass filter was chosen over a Kalman fitler because it is more tuned to the high f noise characteristics of the accelerometer. 
+A filtering library employs a band-pass filter to eliminate much of the drift and high frequency noise from the accelerometer. The band-pass filter was chosen over a Kalman fitler because it is more tuned to the high frequency noise characteristics of the accelerometer. 
 
 With any filtering mechanism, there must be a balance between signal stability and data loss. To limit integral drift, the high frequency accelerometer readings must be heavily filtered, resulting in significant data loss. 
 ![alt text](https://i.ibb.co/34X9ZZd/z-Accel015.png)
