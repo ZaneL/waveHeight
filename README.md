@@ -12,6 +12,8 @@ A filtering library employs a band-pass filter to eliminate much of the drift an
 With any filtering mechanism, there must be a balance between signal stability and data loss. To limit integral drift, the high frequency accelerometer readings must be heavily filtered, resulting in significant data loss. 
 ![alt text](https://i.ibb.co/34X9ZZd/z-Accel015.png)
 
+The most problematic part of this algorithm is that it relies on integration generate position readings. This process is incredibly prone to drifting over time even with substantial accelerometer fitlering. In fact, by the time the data is filtered enough to produce stable position readings, so much data is lost that it renders the position estimations nonsensical. Current development of the algorithm revolves around correcting this problem. The most promising avenue is using the trough and the peak of the wave (the points at which the chip is most stationary) to calcuate the rate of drift.  
+
 # Examples
 The first example prints the real time vertical position values of the board to the serial port.
 
