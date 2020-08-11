@@ -14,7 +14,7 @@ float dt = 1.0 / 255.0;
 float gravity = 9.81;
 
 // Set filter parameters
-const float cutoff_freq_lp   = 30.0;  //Cutoff frequency in Hz
+const float cutoff_freq_lp   = 75.0;  //Cutoff frequency in Hz
 const float sampling_time_lp = 0.005; //Sampling time in seconds.
 IIR::ORDER  order_lp  = IIR::ORDER::OD2; // Order (OD1 to OD4)
 
@@ -77,11 +77,6 @@ void loop()
   double newVec[3];
   double xAccelFiltered, yAccelFiltered, zAccelFiltered;
   double accelMag;
-  double maxZ;
-  double avgHeight = 0.0;
-  double readings[10]; 
-  int i, j, n = 10;
-  double value;
 
   // Must call this often in main loop -- updates the sensor values
   icm20948.task();
@@ -128,6 +123,6 @@ void loop()
     zPosition += zVelocity * dt;
 
     // Print
-    Serial.println(zPosition);
+    Serial.println(abs(zPosition));
   }
 }

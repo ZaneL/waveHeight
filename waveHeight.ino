@@ -1,27 +1,25 @@
-#include <Teensy-ICM-20948.h>
+#include "Teensy-ICM-20948.h"
 #include "Quaternion.h"
-#include "filters.h" // GitHub Repo: https://github.com/MartinBloedorn/libFilter
+#include <filters.h>
 
 #define filterSamples   101 // filterSamples should  be an odd number, no smaller than 3
 
-float xVelocity;
-float xPosition;
-float yVelocity;
-float yPosition;
-float zVelocity;
-float zPosition;
-unsigned long currentTime;
-unsigned long lastTime;
-float dt = 1.0/255.0;
+double xVelocity;
+double xPosition;
+double yVelocity;
+double yPosition;
+double zVelocity;
+double zPosition;
+float dt = 1.0 / 255.0;
 float gravity = 9.81;
 
 // Set filter parameters
-const float cutoff_freq_lp   = 30.0;  //Cutoff frequency in Hz
-const float sampling_time_lp = 0.005; //Sampling time in seconds.
+const float cutoff_freq_lp   = 75.0;  //Cutoff frequency in Hz
+const float sampling_time_lp = 0.003; //Sampling time in seconds.
 IIR::ORDER  order_lp  = IIR::ORDER::OD2; // Order (OD1 to OD4)
 
-const float cutoff_freq_hp   = 0.02;   //Cutoff frequency in Hz
-const float sampling_time_hp = 0.005; //Sampling time in seconds.
+const float cutoff_freq_hp   = 0.135;   //Cutoff frequency in Hz
+const float sampling_time_hp = 0.003; //Sampling time in seconds.
 IIR::ORDER order_hp = IIR::ORDER::OD2; // Order
 
 // ICM Settings
@@ -77,6 +75,8 @@ void loop()
   float quat_w, quat_x, quat_y, quat_z;
   Quaternion quat;
   double newVec[3];
+  double xAccelFiltered, yAccelFiltered, zAccelFiltered;
+  double accelMag;
 
   // Must call this often in main loop -- updates the sensor values
   icm20948.task();
@@ -97,12 +97,12 @@ void loop()
     Quaternion_rotate(&quat, tempVec, newVec);
 
     // Smooth accelerations with band filter in new vector
-    double xAccelFiltered = bandPassFilter(newVec[0]);
-    double yAccelFiltered = bandPassFilter(newVec[1]);
-    double zAccelFiltered = bandPassFilter(newVec[2] - gravity);
+    xAccelFiltered = bandPassFilter(newVec[0]);
+    yAccelFiltered = bandPassFilter(newVec[1]);
+    zAccelFiltered = bandPassFilter(newVec[2] - gravity);
 
     // Take magnitude of newVec
-    double accelMag = sqrt(xAccelFiltered * xAccelFiltered + yAccelFiltered * yAccelFiltered + zAccelFiltered * zAccelFiltered);
+    accelMag = sqrt(xAccelFiltered * xAccelFiltered + yAccelFiltered * yAccelFiltered + zAccelFiltered * zAccelFiltered);
 
     // Reset position if stationary
     if (accelMag < 0.15)
@@ -117,12 +117,12 @@ void loop()
     yVelocity += yAccelFiltered * dt;
     zVelocity += zAccelFiltered * dt;
 
+    //Compute integral drift
+
     // Integral of velocity on each axis
     xPosition += xVelocity * dt;
     yPosition += yVelocity * dt;
     zPosition += zVelocity * dt;
 
-    // Print
-    Serial.println(zPosition);
   }
 }
