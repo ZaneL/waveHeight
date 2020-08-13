@@ -9,13 +9,26 @@ The chip has it's own x, y and z axes that all motion is relative to and measuri
 
 A filtering library employs a band-pass filter to eliminate much of the drift and high frequency noise from the accelerometer. The band-pass filter was chosen over a Kalman fitler because it is more tuned to the high frequency noise characteristics of the accelerometer. 
 
-With any filtering mechanism, there must be a balance between signal stability and data loss. To limit integral drift, the high frequency accelerometer readings must be heavily filtered, resulting in significant data loss. 
+Unfortunately, even with these filtering mechanisms, noise compounds exponentially. The below graph is a experiment done by moving the chip up and down between two known points and graphing the actual height against what the chip was measuring.  
+![alt text](https://i.ibb.co/nbWc3Y9/compounding-Noise.png)
+
+
+By the time thes signal is filtered enough to be stable, too much data is ignored and the readings are innacurate. 
 ![alt text](https://i.ibb.co/34X9ZZd/z-Accel015.png)
 
-The most problematic part of this algorithm is that it relies on integration generate position readings. This process is incredibly prone to drifting over time even with substantial accelerometer fitlering. In fact, by the time the data is filtered enough to produce stable position readings, so much data is lost that it renders the position estimations nonsensical. Current development of the algorithm revolves around correcting this problem. The most promising avenue is using the trough and the peak of the wave (the points at which the chip is most stationary) to calcuate the rate of drift.  
+
+Resetting the position at the trough of each wave allows for greater stability.
+![alt text](https://i.ibb.co/BwhqqDy/position-Reset.png)
+
+
+However, over longer periods of time the integral drift will still make the readings wildly inaccurate.
+![alt text](https://i.ibb.co/YB7PPLq/integral-Drift.png)
+
+
+Current development of the algorithm revolves around correcting this problem. The most promising avenues are using the trough and the peak of the wave (the points at which the chip is most stationary) to calcuate the rate of drift or employing machine learning techniques to validate the data.  
 
 # Examples
-The first example prints the real time vertical position values of the board to the serial port.
+The example prints the real time vertical position values of the board to the serial port.
 
 It uses a combination of a high-pass and low-pass filter from the <filters.h> library to create a band-pass filter.
 
